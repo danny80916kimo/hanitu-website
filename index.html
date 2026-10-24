@@ -3,107 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hanitu 樹靈記 — 探索城市裡的樹靈</title>
-    <meta name="description" content="Hanitu 樹靈記是一款結合 AR 與實地探索的手機遊戲，在台北街頭尋找樹木、捕捉樹靈、建立你的收藏。">
+    <title>Hanitu 樹靈記 — 召喚樹靈，認養你家門口的那棵樹</title>
+    <meta name="description" content="Hanitu 樹靈記是一款走在台北街頭的收集遊戲：掃樹牌召喚樹靈、答題佔領 90 天、每天巡樹簽到、回報樹況、為被移除的樹種下請願苗。市民玩一次，城市多一個資訊點。">
+    <meta property="og:title" content="Hanitu 樹靈記 — 召喚樹靈，認養你家門口的那棵樹">
+    <meta property="og:description" content="掃樹牌召喚樹靈、答題佔領 90 天、巡樹簽到、回報樹況、請願種樹。市民玩一次，城市多一個資訊點。">
+    <meta property="og:image" content="https://hanitu.app/assets/og.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hanitu.app/">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" href="assets/favicon-64.png">
+    <link rel="apple-touch-icon" href="assets/icon.png">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-content">
             <a href="index.html" class="logo">
-                <span class="logo-icon">🌳</span>
+                <img src="assets/icon.png" alt="" class="logo-icon">
                 <span class="logo-text">Hanitu 樹靈記</span>
             </a>
             <div class="nav-links">
+                <a href="#how">怎麼玩</a>
+                <a href="#features">遊戲特色</a>
+                <a href="#kootree">做伙顧樹</a>
                 <a href="privacy.html">隱私政策</a>
                 <a href="terms.html">使用條款</a>
             </div>
         </div>
     </nav>
 
+    <!-- ===== Hero ===== -->
     <section class="hero">
-        <div class="container">
+        <div class="container hero-grid">
             <div class="hero-content">
-                <img src="favicon.png" alt="Hanitu App Icon" class="hero-icon">
+                <span class="hero-tag">台北市 93,045 棵行道樹 · 3,855 棵受保護樹木</span>
                 <h1>Hanitu<br><span class="hero-subtitle">樹靈記</span></h1>
-                <p class="hero-desc">走進城市的綠色角落，發現隱藏在每棵樹中的靈魂。<br>用 AR 捕捉樹靈、探索台北的老樹與行道樹、建立屬於你的樹靈圖鑑。</p>
-                <a href="#" class="btn-download">
-                    <img src="appstore-badge.svg" alt="Download on the App Store" class="appstore-badge">
-                </a>
+                <p class="hero-desc">召喚住在樹裡的樹靈，認養你家門口的那棵樹。<br>掃樹牌、答題、巡樹簽到、回報樹況。市民玩一次，城市多一個資訊點。</p>
+                <div class="hero-actions">
+                    <a href="https://apps.apple.com/tw/app/hanitu/id6761250492" class="btn-download" aria-label="Download on the App Store" target="_blank" rel="noopener">
+                        <img src="appstore-badge.svg" alt="Download on the App Store" class="appstore-badge">
+                    </a>
+                    <a href="#how" class="btn-ghost">看看怎麼玩</a>
+                </div>
+                <p class="hero-note">已在 App Store 上架 · 最新版加入樹靈佔領、樹下答題、經驗升等、請願種樹</p>
+            </div>
+            <div class="hero-art" aria-hidden="true">
+                <img class="phone phone-a" src="assets/map.jpg" alt="">
+                <img class="phone phone-b" src="assets/spirit.jpg" alt="">
             </div>
         </div>
     </section>
 
-    <section class="features">
+    <!-- ===== 新功能 ===== -->
+    <section class="whatsnew">
+        <div class="container">
+            <div class="new-strip">
+                <span class="new-label">0.2.0 新玩法</span>
+                <span>樹靈住進樹裡佔領</span>
+                <span>樹下免費答題</span>
+                <span>經驗升等到 Lv.20</span>
+                <span>換牌符挑戰</span>
+                <span>地圖圖示與圖例改版</span>
+                <span>請願空植穴可拖曳微調</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 怎麼玩 ===== -->
+    <section class="how-it-works" id="how">
+        <div class="container">
+            <h2>怎麼玩</h2>
+            <p class="section-lede">四步，一棵樹。每一步都對應一個真實動作：走到樹旁、認識它、每天看它一眼、有狀況就說。</p>
+            <div class="steps">
+                <div class="step">
+                    <img src="assets/ar.jpg" alt="用 AR 相機掃描樹牌召喚樹靈" loading="lazy">
+                    <div class="step-number">1</div>
+                    <h3>掃樹牌，AR 召喚</h3>
+                    <p>台北每棵行道樹都掛著 QR 樹牌。走到 500 公尺內掃描，樹靈從光球裡醒來。每人每棵樹一隻，放生後可以再召喚。</p>
+                </div>
+                <div class="step">
+                    <img src="assets/quiz.jpg" alt="佔領前的答題畫面" loading="lazy">
+                    <div class="step-number">2</div>
+                    <h3>答題，才能佔領</h3>
+                    <p>三題答對兩題：樹種學名、別名、在地歷史。第一個召喚的人自動佔領；空樹用樹牌釘放進去，有人就用換牌符挑戰。</p>
+                </div>
+                <div class="step">
+                    <img src="assets/tree.jpg" alt="樹木頁面，顯示住在樹裡的樹靈與佔領卡" loading="lazy">
+                    <div class="step-number">3</div>
+                    <h3>佔領 90 天，天天巡樹</h3>
+                    <p>到樹下 20 公尺內簽到 +15 葉，樹下答題每棵樹每天一次。簽到、答題、餵樹靈果都加經驗，升到 Lv.20。</p>
+                </div>
+                <div class="step">
+                    <img src="assets/report.jpg" alt="回報樹況表單" loading="lazy">
+                    <div class="step-number">4</div>
+                    <h3>回報樹況，換葉幣</h3>
+                    <p>病徵、斷枝、被砍、樹牌遺失、新植。一張照片 +30 葉，管理單位確認再 +50。7 天沒回應，系統自動標逾期。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 遊戲特色 ===== -->
+    <section class="features" id="features">
         <div class="container">
             <h2>遊戲特色</h2>
             <div class="feature-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🔍</div>
-                    <h3>探索真實世界</h3>
-                    <p>走出門，在台北的街道和公園中尋找樹木。每棵樹都可能藏著一隻獨特的樹靈。</p>
+                    <img src="assets/legend.jpg" alt="地圖圖例" loading="lazy">
+                    <div>
+                        <h3>地圖探索</h3>
+                        <p>附近的樹用顏色分：空樹、別人的、你的。右下角徽章表示可召喚或在背包，右上角小點是樹況。</p>
+                    </div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">📱</div>
-                    <h3>掃描 QR Code</h3>
-                    <p>台北市的行道樹都掛有 QR Code 標牌。掃描它，揭開這棵樹的秘密，召喚樹靈！</p>
+                    <img src="assets/dex.jpg" alt="樹靈圖鑑" loading="lazy">
+                    <div>
+                        <h3>樹靈圖鑑</h3>
+                        <p>692 種樹種對應 692 種樹靈，草火水風四系、四種稀有度，性格由樹種決定。分「背包」與「佔領中」兩頁。</p>
+                    </div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">✨</div>
-                    <h3>AR 捕捉樹靈</h3>
-                    <p>透過 AR 相機，在真實世界中看見閃爍的樹靈球體。點擊捕捉，收入你的圖鑑。</p>
+                    <img src="assets/spirit.jpg" alt="樹靈養成畫面" loading="lazy">
+                    <div>
+                        <h3>樹靈養成</h3>
+                        <p>收回背包、放生、餵樹靈果、在地圖上查看。被挑戰時，樹靈每 5 級對方就要多答一題。</p>
+                    </div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🌿</div>
-                    <h3>四大屬性</h3>
-                    <p>草、火、水、風 — 每隻樹靈都有獨特的屬性與 MBTI 性格，由樹種決定。</p>
+                    <img src="assets/leaf.jpg" alt="葉幣與每日任務" loading="lazy">
+                    <div>
+                        <h3>葉幣與每日任務</h3>
+                        <p>走路換葉（100 步 1 葉）、巡樹簽到、每日一題、回報一棵樹。答題每日上限 300 葉，商城換深根釘、防護符、請願苗。</p>
+                    </div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🏆</div>
-                    <h3>先搶先贏</h3>
-                    <p>行道樹的樹靈一次只屬於一個人。搶在別人之前掃碼，佔領你身邊的每棵樹！</p>
+                    <img src="assets/petition.jpg" alt="請願模式地圖" loading="lazy">
+                    <div>
+                        <h3>請願種樹</h3>
+                        <p>被移除的樹留下空位，市民也能標記空植穴，拖地圖微調位置。種下請願苗、選想要的樹種，50 苗成案。</p>
+                    </div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🌳</div>
-                    <h3>守護老樹</h3>
-                    <p>台北 3,500 棵受保護老樹，每棵都有百年歷史和故事。靠近它們，感受古老的力量。</p>
+                    <img src="assets/profile.jpg" alt="個人頁" loading="lazy">
+                    <div>
+                        <h3>留言與個人頁</h3>
+                        <p>每棵樹有留言牆。個人頁整理你的樹、參與的請願、收集的樹靈、累計步數，同樹種答對 10 題點亮認識徽章。</p>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="how-it-works">
-        <div class="container">
-            <h2>怎麼玩</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>打開地圖</h3>
-                    <p>地圖上顯示你附近的樹木，灰色是還沒被佔領的行道樹，金色是你的。</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>走到樹旁</h3>
-                    <p>找到實體的樹，看看樹幹上的金屬標牌。</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>掃描捕捉</h3>
-                    <p>按下掃描按鈕，對準 QR Code。如果這棵樹還沒被佔領，樹靈就會出現在 AR 中！</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>收集圖鑑</h3>
-                    <p>每隻樹靈都有 AI 生成的名字、故事和形象。建立你的專屬樹靈圖鑑吧！</p>
-                </div>
+    <!-- ===== 做伙顧樹 ===== -->
+    <section class="kootree" id="kootree">
+        <div class="container kootree-grid">
+            <div class="kootree-copy">
+                <span class="kicker">同一個資料庫 · 另一個入口</span>
+                <h2>做伙顧樹 KooTree</h2>
+                <p>你在遊戲裡的每一次簽到、回報、請願，都會進到同一張資料表。做伙顧樹把全台北 9 萬棵樹放在同一張地圖上，讓市府、養護單位和所有人看到整座城市的樹況全貌。</p>
+                <ul>
+                    <li>行政區、路段、樹種篩選與分布地圖</li>
+                    <li>市民回報的處理進度與逾期案件</li>
+                    <li>公園處「小樹保衛站」官方說明，對應到每一棵樹</li>
+                </ul>
+                <a href="https://kootree-hanitu.nelsonliu.run/dashboard/" class="btn-primary" target="_blank" rel="noopener">開啟做伙顧樹資訊站</a>
             </div>
+            <a href="https://kootree-hanitu.nelsonliu.run/dashboard/" target="_blank" rel="noopener" class="kootree-shot">
+                <img src="assets/dashboard.jpg" alt="做伙顧樹資訊站畫面" loading="lazy">
+            </a>
         </div>
     </section>
 
     <footer>
         <div class="container footer-content">
-            <p>&copy; 2026 Hanitu 樹靈記. All rights reserved.</p>
+            <p>&copy; 2026 Hanitu 樹靈記. All rights reserved.<br><span class="footer-src">資料來源：臺北市公園路燈工程管理處、臺北市文化局、公園處小樹保衛站（政府資料開放授權條款第 1 版）</span></p>
             <div class="footer-links">
                 <a href="privacy.html">隱私政策</a>
                 <a href="terms.html">使用條款</a>
