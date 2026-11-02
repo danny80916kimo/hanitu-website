@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>樹靈記 營運儀表板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 版面：頂欄 + 分頁。每頁是「數字磚 → 圖 → 表」的順序，玩家明細用右側滑出面板。 */
+:root {
+  --bg: #f4f6f1; --surface: #ffffff; --surface-2: #eaeee4; --line: #d6dccd;
+  --fg: #1b2419; --fg-2: #5a6655; --fg-3: #8a9484;
+  --accent: #2f7a3e; --accent-ink: #ffffff;
+  --good: #1f8a4c; --warn: #b5700b; --bad: #c2403b;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --heat-0: #eaeee4; --heat-1: #cde2fb; --heat-2: #86b6ef; --heat-3: #3987e5; --heat-4: #1c5cab;
+  --font-display: "Noto Serif TC", "Songti TC", serif;
+  --font-body: "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a13; --surface: #1c241b; --surface-2: #232d22; --line: #33402f;
+    --fg: #eef2ea; --fg-2: #aab6a4; --fg-3: #7c877a;
+    --accent: #5fb86f; --accent-ink: #0f1a10;
+    --good: #4fbf7a; --warn: #e0a23a; --bad: #ef6b66;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --heat-0: #232d22; --heat-1: #184f95; --heat-2: #256abf; --heat-3: #3987e5; --heat-4: #86b6ef;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a13; --surface: #1c241b; --surface-2: #232d22; --line: #33402f;
+  --fg: #eef2ea; --fg-2: #aab6a4; --fg-3: #7c877a;
+  --accent: #5fb86f; --accent-ink: #0f1a10;
+  --good: #4fbf7a; --warn: #e0a23a; --bad: #ef6b66;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --heat-0: #232d22; --heat-1: #184f95; --heat-2: #256abf; --heat-3: #3987e5; --heat-4: #86b6ef;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.5;
+  padding-block: 0 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; }
+.panel { display: grid; gap: 18px; min-width: 0; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: .02em; }
+h2 { font-size: 15px; font-weight: 700; }
+h3 { font-size: 13px; font-weight: 700; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; }
+.muted { color: var(--fg-2); }
+.faint { color: var(--fg-3); }
+.small { font-size: 12px; }
+.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+a { color: var(--accent); }
+img { max-width: 100%; }
+
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding-block: 14px 0;
+}
+header.top .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; padding-bottom: 12px; }
+header.top .brand svg { width: 28px; height: 28px; flex: none; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-bottom: 12px; }
+nav.tabs { flex-basis: 100%; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs button { border: 0; background: transparent; color: var(--fg-2); padding: 8px 14px; font: inherit; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--fg-2); padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.btn:hover { border-color: var(--fg-3); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn:focus-visible, .seg button:focus-visible, nav.tabs button:focus-visible, input:focus-visible, tr.click:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input.search { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); min-width: 0; width: 220px; max-width: 100%; }
+
+.login { max-width: 400px; margin: 12vh auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px; display: grid; gap: 14px; }
+.login label { display: grid; gap: 6px; font-size: 13px; color: var(--fg-2); }
+.login input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+.divider { display: flex; align-items: center; gap: 10px; color: var(--fg-3); font-size: 12px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.notice { border-radius: 8px; padding: 10px 12px; font-size: 13px; background: var(--surface-2); color: var(--fg-2); }
+.notice.err { color: var(--bad); border: 1px solid color-mix(in oklab, var(--bad) 35%, transparent); background: color-mix(in oklab, var(--bad) 8%, var(--surface)); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 4px; min-width: 0; align-content: start; }
+.tile .label { font-size: 12px; color: var(--fg-2); }
+.tile .value { font-family: var(--font-mono); font-size: 26px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile .sub { font-size: 12px; color: var(--fg-3); }
+
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 12px; min-width: 0; align-content: start; }
+section.card > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+section.card > header .hint { font-size: 12px; color: var(--fg-3); margin-left: auto; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 18px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.chart { position: relative; height: 230px; }
+.chart.short { height: 130px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--fg-2); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--c); margin-right: 6px; vertical-align: -1px; }
+
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: minmax(6em, 9em) 1fr auto; align-items: center; gap: 10px; font-size: 13px; }
+.bar > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .track { height: 10px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.bar .fill { height: 100%; width: 0; background: var(--c, var(--s1)); border-radius: 4px; transition: width .4s ease-out; }
+.bar .v { color: var(--fg-2); font-size: 12px; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .bar .fill { transition: none; } }
+
+/* 漏斗 */
+.funnel { display: grid; gap: 6px; }
+.funnel .step { display: grid; grid-template-columns: minmax(6em, 9em) 1fr auto; gap: 10px; align-items: center; font-size: 13px; }
+.funnel .track { height: 22px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.funnel .fill { height: 100%; background: var(--accent); border-radius: 4px; opacity: .85; }
+.funnel .pct { color: var(--fg-3); font-size: 12px; white-space: nowrap; }
+
+/* 熱圖 */
+.heat { display: grid; grid-template-columns: 2.4em repeat(24, 1fr); gap: 2px; font-size: 10px; color: var(--fg-3); }
+.heat .cell { aspect-ratio: 1; border-radius: 2px; background: var(--heat-0); min-width: 0; }
+.heat .cell[data-l="1"] { background: var(--heat-1); } .heat .cell[data-l="2"] { background: var(--heat-2); }
+.heat .cell[data-l="3"] { background: var(--heat-3); } .heat .cell[data-l="4"] { background: var(--heat-4); }
+.heat .hl { text-align: center; } .heat .dl { align-self: center; }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+td.wrap { white-space: normal; min-width: 14em; max-width: 28em; }
+th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; }
+td.num, th.num { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; background: var(--surface-2); color: var(--fg-2); white-space: nowrap; }
+.pill.anon { color: var(--warn); } .pill.good { color: var(--good); } .pill.bad { color: var(--bad); } .pill.warn { color: var(--warn); }
+.act { display: inline-flex; align-items: center; gap: 6px; }
+.act::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--fg-3)); flex: none; }
+.empty { color: var(--fg-3); text-align: center; padding: 20px; font-size: 13px; }
+.thumb { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; background: var(--surface-2); display: block; }
+.photos { display: flex; gap: 4px; }
+.photos img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; background: var(--surface-2); }
+.progress { display: inline-block; width: 120px; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; vertical-align: middle; margin-right: 6px; }
+.progress i { display: block; height: 100%; background: var(--s3); }
+.retention td.r { text-align: right; } .retention td.r span { display: inline-block; min-width: 3.5em; padding: 1px 6px; border-radius: 4px; }
+.loading { color: var(--fg-3); font-size: 13px; padding: 24px; text-align: center; }
+footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+/* 玩家明細面板 */
+.drawer-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 20; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(720px, 100%); background: var(--bg); z-index: 21; overflow-y: auto; border-left: 1px solid var(--line);
+  padding-block: env(safe-area-inset-top, 0px) 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 14px; align-content: start; }
+.drawer > header { display: flex; align-items: center; gap: 12px; position: sticky; top: 0; background: var(--bg); padding-block: 14px 10px; border-bottom: 1px solid var(--line); z-index: 1; }
+.drawer > header .close { margin-left: auto; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); object-fit: cover; flex: none; }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 14px; font-size: 13px; }
+.kv div span { display: block; color: var(--fg-3); font-size: 11px; }
+.spirit-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.spirit-card { display: grid; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 12px; min-width: 0; }
+.spirit-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--surface-2); }
+.spirit-card b { font-size: 13px; }
+.timeline { display: grid; gap: 0; font-size: 13px; }
+.timeline .ev { display: grid; grid-template-columns: 7.5em 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.timeline .ev:last-child { border-bottom: 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login" hidden>
+  <div>
+    <div class="eyebrow">Hanitu · 樹靈記</div>
+    <h1>營運儀表板</h1>
+    <p class="muted small" style="margin:6px 0 0">管理員登入後可看到玩家數、行為與成長。帳號需在 admin_users 名單內。</p>
+  </div>
+  <button class="btn primary" id="googleBtn" type="button">用 Google 登入（與遊戲同帳號）</button>
+  <div class="divider"><span>或用 email 密碼</span></div>
+  <form id="loginForm">
+    <div style="display:grid;gap:12px">
+      <label>Email <input id="email" type="email" autocomplete="username" required></label>
+      <label>密碼 <input id="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary" id="loginBtn" type="submit">登入</button>
+    </div>
+  </form>
+  <div id="loginMsg" class="notice" hidden></div>
+</div>
+
+<div id="app" class="wrap" hidden>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3c-6 5-10 9-10 15a10 10 0 0 0 9 10v-7l-4-4 1-1 3 3v-5l-3-3 1-1 2 2V3Zm1 0v9l3-3 1 1-4 4v5l4-4 1 1-5 5v7a10 10 0 0 0 9-10c0-6-4-10-9-15Z" fill="var(--accent)"/></svg>
+      <div><div class="eyebrow">Hanitu · 樹靈記</div><h1>營運儀表板</h1></div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="統計區間">
+        <button type="button" data-days="7">7 天</button>
+        <button type="button" data-days="30" aria-pressed="true">30 天</button>
+        <button type="button" data-days="90">90 天</button>
+      </div>
+      <button class="btn" id="refreshBtn" type="button">重新整理</button>
+      <button class="btn" id="logoutBtn" type="button">登出</button>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="overview" aria-selected="true">總覽</button>
+      <button role="tab" data-tab="players">玩家</button>
+      <button role="tab" data-tab="spirits">樹靈</button>
+      <button role="tab" data-tab="trees">樹木與認領</button>
+      <button role="tab" data-tab="economy">葉幣與道具</button>
+      <button role="tab" data-tab="civic">回報與請願</button>
+    </nav>
+  </header>
+
+  <div id="appMsg" class="notice err" hidden></div>
+
+  <!-- 總覽 -->
+  <div id="tab-overview" class="panel" role="tabpanel">
+    <section>
+      <div class="eyebrow" style="margin-bottom:8px">玩家總覽</div>
+      <div class="tiles" id="tiles"></div>
+    </section>
+    <div class="grid2">
+      <section class="card">
+        <header><h2>使用者成長</h2><span class="hint">累積註冊人數（含匿名帳號）</span></header>
+        <div class="chart"><canvas id="growthChart"></canvas></div>
+        <div class="eyebrow">每日新註冊</div>
+        <div class="chart short"><canvas id="signupChart"></canvas></div>
+      </section>
+      <section class="card">
+        <header><h2>每日活躍玩家</h2><span class="hint">當天有任何遊戲行為的不重複人數</span></header>
+        <div class="chart"><canvas id="activeChart"></canvas></div>
+        <div class="eyebrow">每日行為量</div>
+        <div class="chart short"><canvas id="actionsChart"></canvas></div>
+        <div class="legend" id="actionsLegend"></div>
+      </section>
+    </div>
+    <div class="grid2">
+      <section class="card">
+        <header><h2>玩家做了什麼</h2><span class="hint" id="breakdownHint"></span></header>
+        <div class="bars" id="breakdown"></div>
+      </section>
+      <section class="card">
+        <header><h2>什麼時候在玩</h2><span class="hint" id="heatHint"></span></header>
+        <div class="heat" id="heat"></div>
+        <div class="faint small">顏色越深代表該時段行為越多（台北時間）</div>
+      </section>
+    </div>
+    <section class="card">
+      <header><h2>最近動態</h2><span class="hint">最新 60 筆玩家行為，點玩家可看明細</span></header>
+      <div class="tablewrap"><table id="activityTable">
+        <thead><tr><th>時間</th><th>玩家</th><th>行為</th><th>說明</th><th>樹</th></tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <!-- 玩家 -->
+  <div id="tab-players" class="panel" role="tabpanel" hidden>
+    <div class="grid2">
+      <section class="card">
+        <header><h2>玩家漏斗</h2><span class="hint">註冊後走到哪一步</span></header>
+        <div class="funnel" id="funnel"></div>
+      </section>
+      <section class="card">
+        <header><h2>玩家組成</h2></header>
+        <div class="grid2" style="gap:14px">
+          <div><div class="eyebrow" style="margin-bottom:8px">登入方式</div><div class="bars" id="providerBars"></div></div>
+          <div><div class="eyebrow" style="margin-bottom:8px">累計行為數分佈</div><div class="bars" id="bucketBars"></div></div>
+        </div>
+        <div class="kv" id="playerKv"></div>
+      </section>
+    </div>
+    <section class="card">
+      <header><h2>週留存</h2><span class="hint">同一週註冊的玩家，之後第 N 週還有行為的比例</span></header>
+      <div class="tablewrap"><table class="retention" id="retentionTable">
+        <thead><tr><th>註冊週</th><th class="num">人數</th><th class="num">當週</th><th class="num">第 1 週</th><th class="num">第 2 週</th><th class="num">第 3 週</th><th class="num">第 4 週</th></tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <header><h2>玩家清單</h2><input class="search" id="playerSearch" type="search" placeholder="搜尋玩家名稱…" aria-label="搜尋玩家"><span class="hint">依累計行為數排序，點一列看明細</span></header>
+      <div class="tablewrap"><table id="playersTable">
+        <thead><tr>
+          <th>玩家</th><th>加入</th><th>最後活動</th>
+          <th class="num">樹靈</th><th class="num">最高等級</th><th class="num">認領</th><th class="num">回報</th><th class="num">集氣</th>
+          <th class="num">葉幣累計</th><th class="num">葉幣餘額</th><th class="num">步數</th><th class="num">行為數</th>
+        </tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <!-- 樹靈 -->
+  <div id="tab-spirits" class="panel" role="tabpanel" hidden>
+    <section class="card">
+      <header><h2>樹靈分佈</h2><span class="hint" id="spiritHint"></span></header>
+      <div class="grid3">
+        <div><div class="eyebrow" style="margin-bottom:8px">稀有度</div><div class="bars" id="rarityBars"></div></div>
+        <div><div class="eyebrow" style="margin-bottom:8px">元素</div><div class="bars" id="elementBars"></div></div>
+        <div><div class="eyebrow" style="margin-bottom:8px">等級分佈</div><div class="chart short"><canvas id="levelChart"></canvas></div></div>
+      </div>
+      <div><div class="eyebrow" style="margin-bottom:8px">樹靈所在行政區</div><div class="bars" id="divisionBars"></div></div>
+    </section>
+    <section class="card">
+      <header><h2>樹靈清單</h2><input class="search" id="spiritSearch" type="search" placeholder="搜尋名字、樹種、主人…" aria-label="搜尋樹靈"><span class="hint">最新 200 隻</span></header>
+      <div class="tablewrap"><table id="spiritsTable">
+        <thead><tr><th></th><th>名字</th><th>主人</th><th>樹種 / 樹牌</th><th>行政區</th><th>元素</th><th>稀有度</th><th class="num">等級</th><th class="num">EXP</th><th>MBTI</th><th>狀態</th><th>收服</th><th>最後餵食</th></tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <!-- 樹木 -->
+  <div id="tab-trees" class="panel" role="tabpanel" hidden>
+    <section class="card">
+      <header><h2>熱門樹木</h2><span class="hint">依玩家互動量（樹靈、認領、回報、集氣、事件）排序</span></header>
+      <div class="tablewrap"><table id="treesTable">
+        <thead><tr><th>樹牌</th><th>樹種</th><th>行政區</th><th>地址</th><th>狀態</th><th class="num">樹靈</th><th class="num">認領</th><th class="num">回報</th><th class="num">集氣</th><th class="num">事件</th><th>地圖</th></tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <header><h2>認領紀錄</h2><span class="hint">進行中的排前面；點玩家可看明細</span></header>
+      <div class="tablewrap"><table id="claimsTable">
+        <thead><tr><th>玩家</th><th>樹靈</th><th>樹</th><th>行政區</th><th>狀態</th><th>認領日</th><th>到期</th><th>上次簽到</th><th class="num">連續簽到</th><th class="num">延長</th><th class="num">答題</th><th class="num">被挑戰</th></tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <!-- 經濟 -->
+  <div id="tab-economy" class="panel" role="tabpanel" hidden>
+    <section><div class="eyebrow" style="margin-bottom:8px">葉幣</div><div class="tiles" id="econTiles"></div></section>
+    <div class="grid2">
+      <section class="card">
+        <header><h2>葉幣從哪來</h2><span class="hint" id="earnHint"></span></header>
+        <div class="bars" id="earnBars"></div>
+      </section>
+      <section class="card">
+        <header><h2>葉幣花在哪</h2><span class="hint" id="spendHint"></span></header>
+        <div class="bars" id="spendBars"></div>
+      </section>
+    </div>
+    <div class="grid2">
+      <section class="card">
+        <header><h2>每日葉幣發放與步數</h2></header>
+        <div class="chart short"><canvas id="leavesChart"></canvas></div>
+        <div class="eyebrow">步數</div>
+        <div class="chart short"><canvas id="stepsChart"></canvas></div>
+      </section>
+      <section class="card">
+        <header><h2>道具與餘額</h2></header>
+        <div class="grid2" style="gap:14px">
+          <div><div class="eyebrow" style="margin-bottom:8px">玩家手上的道具</div><div class="bars" id="itemBars"></div></div>
+          <div><div class="eyebrow" style="margin-bottom:8px">葉幣餘額分佈（人數）</div><div class="bars" id="balanceBars"></div></div>
+        </div>
+      </section>
+    </div>
+    <section class="card">
+      <header><h2>答題與挑戰</h2></header>
+      <div class="kv" id="quizKv"></div>
+      <div class="grid2" style="gap:14px">
+        <div><div class="eyebrow" style="margin-bottom:8px">認領答題成績（答對題數）</div><div class="bars" id="quizScoreBars"></div></div>
+        <div><div class="eyebrow" style="margin-bottom:8px">題庫範圍</div><div class="bars" id="quizScopeBars"></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 回報與請願 -->
+  <div id="tab-civic" class="panel" role="tabpanel" hidden>
+    <section class="card">
+      <header><h2>樹況回報</h2><span class="hint" id="reportHint"></span></header>
+      <div class="bars" id="reportTypeBars"></div>
+      <div class="tablewrap"><table id="reportsTable">
+        <thead><tr><th>時間</th><th>玩家</th><th>類型</th><th>樹</th><th>備註</th><th>照片</th><th>狀態</th></tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <header><h2>請願空位</h2><span class="hint" id="petitionHint"></span></header>
+      <div class="tablewrap"><table id="petitionsTable">
+        <thead><tr><th>地點</th><th>來源</th><th>狀態</th><th>進度</th><th class="num">投苗人數</th><th>樹種偏好</th><th>最近投苗</th><th>建立</th><th>地圖</th></tr></thead><tbody></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <footer>
+    <span id="generatedAt"></span>
+    <span>資料來源：Supabase · 日界以台北時間計</span>
+  </footer>
+</div>
+
+<div id="drawerBg" class="drawer-bg" hidden></div>
+<aside id="drawer" class="drawer" hidden aria-label="玩家明細"></aside>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  const SUPABASE_URL = 'https://pxglzzlihfhdjulegxag.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_WqaLuf-ogk6XeT8nRs6omg_AMEZz0MK';
+
+  const memStore = {};
+  const safeStorage = {
+    getItem: k => { try { return localStorage.getItem(k); } catch { return memStore[k] ?? null; } },
+    setItem: (k, v) => { try { localStorage.setItem(k, v); } catch { memStore[k] = v; } },
+    removeItem: k => { try { localStorage.removeItem(k); } catch { delete memStore[k]; } },
+  };
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storage: safeStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+  });
+
+  const $ = id => document.getElementById(id);
+  // ---------- 對照表（和 App 內 enum 一致）----------
+  const ACTIONS = {
+    spirit:    { label: '收服樹靈', c: 'var(--s3)' },
+    claim:     { label: '認領樹木', c: 'var(--s1)' },
+    checkin:   { label: '樹下簽到', c: 'var(--s7)' },
+    report:    { label: '回報樹況', c: 'var(--s2)' },
+    quiz:      { label: '答題', c: 'var(--s4)' },
+    watch:     { label: '集氣', c: 'var(--s5)' },
+    petition:  { label: '請願種苗', c: 'var(--s6)' },
+    comment:   { label: '留言', c: 'var(--s8)' },
+    challenge: { label: '搶樹挑戰', c: 'var(--fg-3)' },
+    steps:     { label: '步數換葉', c: 'var(--fg-3)' },
+    purchase:  { label: '商城購買', c: 'var(--fg-3)' },
+    milestone: { label: '認領里程碑', c: 'var(--fg-3)' },
+  };
+  const REASONS = { steps: '步數', checkin: '簽到', report: '回報', report_confirmed: '回報被確認', quiz: '答對題目', purchase: '商城購買', milestone: '認領里程碑', watch_vote: '集氣' };
+  const ITEMS = { tag_nail: '樹牌釘', deep_root: '深根釘', swap_charm: '換牌符', nb_flag: '鄰里旗', ward_charm: '防護符', patrol_lamp: '巡樹燈', petition_seed: '請願苗', spirit_fruit: '樹靈果' };
+  const RARITY = { common: '普通', rare: '稀有', epic: '史詩', legendary: '傳說' };
+  const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
+  const ELEMENT = { grass: '草系', fire: '火系', water: '水系', wind: '風系', wood: '草系', earth: '土系' };
+  const ELEMENT_C = { grass: 'var(--s3)', wood: 'var(--s3)', fire: 'var(--s2)', water: 'var(--s1)', wind: 'var(--s7)', earth: 'var(--s4)' };
+  const REPORT_TYPES = { disease_sign: '疑似病徵', broken_or_fallen: '斷枝倒伏', cut_or_missing: '被砍或消失', tag_lost: '樹牌遺失', newly_planted: '新植', other: '其他' };
+  const TREE_STATUS = { healthy: ['健康', ''], watching: ['觀察中', 'warn'], scheduled_removal: ['預定移除', 'bad'], removed: ['已移除', 'bad'], replanted: ['已補植', 'good'] };
+  const PROVIDERS = { google: 'Google', apple: 'Apple', email: 'Email', anonymous: '匿名' };
+  const PETITION_ORIGIN = { removed: '移除後空位', citizen: '市民提議' };
+  const PETITION_STATUS = { open: ['募集中', ''], formed: ['已成案', 'good'], submitted: ['已送件', 'good'] };
+  const QUIZ_SCOPE = { species: '樹種', division: '行政區', tree: '單棵樹' };
+  const STACK_KEYS = ['spirits', 'claims', 'checkins', 'reports', 'quiz', 'watches', 'petitions'];
+  const STACK_META = { spirits: ACTIONS.spirit, claims: ACTIONS.claim, checkins: ACTIONS.checkin, reports: ACTIONS.report, quiz: ACTIONS.quiz, watches: ACTIONS.watch, petitions: ACTIONS.petition };
+  const DOW = ['一', '二', '三', '四', '五', '六', '日'];
+
+  let days = 30;
+  let tab = 'overview';
+  const charts = {};
+  const cache = {};   // key → data
+  let playersRows = [], spiritRows = [];
+
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const fmt = n => (n == null ? '—' : Number(n).toLocaleString('zh-Hant-TW'));
+  const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '—';
+  const fmtDate = s => s ? new Date(s).toLocaleDateString('zh-Hant-TW', { month: 'numeric', day: 'numeric' }) : '—';
+  const fmtDateY = s => s ? new Date(s).toLocaleDateString('zh-Hant-TW', { year: 'numeric', month: 'numeric', day: 'numeric' }) : '—';
+  const fmtTime = s => s ? new Date(s).toLocaleString('zh-Hant-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
+  const ago = s => { if (!s) return '—'; const d = (Date.now() - new Date(s)) / 864e5; return d < 1 ? '今天' : d < 2 ? '昨天' : Math.floor(d) + ' 天前'; };
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const resolve = v => v.startsWith('var(') ? css(v.slice(4, -1)) : v;
+  const alpha = (hex, a) => { const h = hex.replace('#', ''); const n = parseInt(h.length === 3 ? h.split('').map(x => x + x).join('') : h, 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+  const mapLink = (lat, lng) => lat && lng ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener">地圖</a>` : '';
+  const pill = (text, cls = '') => `<span class="pill ${cls}">${esc(text)}</span>`;
+  const userCell = (label, id, anon) => `<a href="#" class="user-link" data-user="${esc(id)}">${esc(label)}</a>${anon ? ' ' + pill('匿名', 'anon') : ''}`;
+  const toItems = (obj, valueOf = v => Number(v)) => Object.entries(obj || {}).map(([k, v]) => ({ key: k, value: valueOf(v), raw: v })).sort((a, b) => b.value - a.value);
+  // 動態說明欄：把資料庫代碼翻成中文
+  function detailText(action, detail) {
+    if (!detail) return '';
+    if (action === 'report') return REPORT_TYPES[detail] ?? detail;
+    if (action === 'spirit') { const [r, e] = detail.split(' / '); return `${RARITY[r] ?? r} · ${ELEMENT[e] ?? e}`; }
+    return detail;
+  }
+
+  function chartDefaults() {
+    Chart.defaults.font.family = css('--font-body');
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = css('--fg-2');
+    Chart.defaults.borderColor = css('--line');
+    Chart.defaults.plugins.legend.display = false;
+    Chart.defaults.plugins.tooltip.backgroundColor = css('--fg');
+    Chart.defaults.plugins.tooltip.titleColor = css('--bg');
+    Chart.defaults.plugins.tooltip.bodyColor = css('--bg');
+    Chart.defaults.animation = matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 300 };
+  }
+  const axes = () => ({
+    x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+    y: { beginAtZero: true, grid: { color: css('--line') }, border: { display: false }, ticks: { precision: 0, maxTicksLimit: 5 } },
+  });
+  function makeChart(id, config) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), config); }
+  function lineChart(id, labels, data, color, label) {
+    const c = resolve(color);
+    makeChart(id, { type: 'line', data: { labels, datasets: [{ label, data, borderColor: c, backgroundColor: alpha(c, .15), fill: true, borderWidth: 2, pointRadius: labels.length <= 14 ? 3 : 0, pointHitRadius: 12, tension: .25 }] },
+      options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: axes() } });
+  }
+  function barChart(id, labels, data, color, label) {
+    makeChart(id, { type: 'bar', data: { labels, datasets: [{ label, data, backgroundColor: resolve(color), borderRadius: 3, maxBarThickness: 18 }] }, options: { maintainAspectRatio: false, scales: axes() } });
+  }
+
+  async function rpc(name, args) {
+    const { data, error } = await sb.rpc(name, args ?? {});
+    if (error) throw Object.assign(new Error(error.message), { code: error.code, hint: error.hint });
+    return data;
+  }
+  async function cached(key, loader) { if (!(key in cache)) cache[key] = await loader(); return cache[key]; }
+
+  function barList(el, items, { color = () => 'var(--s1)', labelOf = x => x, extraOf = () => '', emptyText = '還沒有資料' } = {}) {
+    if (!items.length) { el.innerHTML = `<div class="empty">${esc(emptyText)}</div>`; return; }
+    const max = Math.max(...items.map(i => i.value), 1);
+    el.innerHTML = items.map(i => `
+      <div class="bar" title="${esc(labelOf(i.key))}：${fmt(i.value)}">
+        <span>${esc(labelOf(i.key))}</span>
+        <div class="track"><div class="fill" style="--c:${color(i.key)};width:${(100 * i.value / max).toFixed(1)}%"></div></div>
+        <span class="v num">${fmt(i.value)}${extraOf(i) ? ` <span class="muted">· ${esc(extraOf(i))}</span>` : ''}</span>
+      </div>`).join('');
+  }
+  function tiles(el, list) {
+    el.innerHTML = list.map(t => `<div class="tile"><div class="label">${esc(t.label)}</div><div class="value">${typeof t.value === 'string' ? esc(t.value) : fmt(t.value)}</div><div class="sub">${esc(t.sub ?? '')}</div></div>`).join('');
+  }
+  function emptyRow(tb, cols, text) { tb.innerHTML = `<tr><td colspan="${cols}" class="empty">${esc(text)}</td></tr>`; }
+
+  // ================= 總覽 =================
+  function renderOverview({ overview: o, growth, activity, breakdown, hourly, recent }) {
+    tiles($('tiles'), [
+      { label: '總玩家', value: o.total_users, sub: `其中匿名 ${fmt(o.anonymous_users)}` },
+      { label: '本週新增', value: o.new_7d, sub: `今日 ${fmt(o.new_1d)} · 30 天 ${fmt(o.new_30d)}` },
+      { label: '日活躍', value: o.dau, sub: '有遊戲行為的玩家' },
+      { label: '週活躍 / 月活躍', value: `${fmt(o.wau)} / ${fmt(o.mau)}`, sub: `曾活躍 ${fmt(o.ever_active)} 人` },
+      { label: '樹靈總數', value: o.spirits, sub: `${fmt(o.spirit_owners)} 位主人 · 最高 Lv.${fmt(o.max_level)}` },
+      { label: '認領中樹木', value: o.trees_claimed, sub: `累計認領 ${fmt(o.claims_total)} 次` },
+      { label: '葉幣累計發放', value: o.leaves_earned, sub: `花掉 ${fmt(o.leaves_spent)} · 流通 ${fmt(o.leaves_balance)}` },
+      { label: '累計步數', value: o.steps_total, sub: `${fmt(o.step_users)} 位玩家有紀錄` },
+      { label: '樹況回報', value: o.reports, sub: `已確認 ${fmt(o.reports_confirmed)}` },
+      { label: '集氣 / 請願苗', value: `${fmt(o.watch_votes)} / ${fmt(o.petition_seeds)}`, sub: `請願空位 ${fmt(o.petition_slots)}` },
+      { label: '簽到 / 答對', value: `${fmt(o.checkins)} / ${fmt(o.quiz_correct)}`, sub: `挑戰 ${fmt(o.challenges)} 次` },
+      { label: '近 7 天行為', value: o.actions_7d, sub: `留言 ${fmt(o.comments)} · 樹事件 ${fmt(o.tree_events)}` },
+    ]);
+    $('generatedAt').textContent = `更新於 ${fmtTime(o.generated_at)}`;
+
+    const gl = growth.map(r => fmtDate(r.day));
+    lineChart('growthChart', gl, growth.map(r => r.cumulative), 'var(--s1)', '累積玩家');
+    barChart('signupChart', gl, growth.map(r => r.signups), 'var(--s1)', '新註冊');
+
+    const al = activity.map(r => fmtDate(r.day));
+    lineChart('activeChart', al, activity.map(r => r.active_users), 'var(--s3)', '活躍玩家');
+    makeChart('actionsChart', { type: 'bar',
+      data: { labels: al, datasets: STACK_KEYS.map(k => ({ label: STACK_META[k].label, data: activity.map(r => r[k]), backgroundColor: resolve(STACK_META[k].c), borderColor: css('--surface'), borderWidth: 1, borderSkipped: false, maxBarThickness: 18 })) },
+      options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { x: { ...axes().x, stacked: true }, y: { ...axes().y, stacked: true } } } });
+    $('actionsLegend').innerHTML = STACK_KEYS.map(k => `<span style="--c:${STACK_META[k].c}">${STACK_META[k].label}</span>`).join('');
+
+    $('breakdownHint').textContent = `近 ${days} 天各種行為的次數與參與人數`;
+    barList($('breakdown'), breakdown.map(r => ({ key: r.action, value: Number(r.actions), users: r.users })),
+      { color: k => ACTIONS[k]?.c ?? 'var(--fg-3)', labelOf: k => ACTIONS[k]?.label ?? k, extraOf: i => `${fmt(i.users)} 人`, emptyText: '這段期間沒有玩家行為' });
+
+    // 熱圖
+    $('heatHint').textContent = `近 ${days} 天，星期 × 小時`;
+    const grid = Array.from({ length: 7 }, () => Array(24).fill(0));
+    let max = 0;
+    hourly.forEach(r => { grid[r.dow - 1][r.hour] = Number(r.actions); max = Math.max(max, Number(r.actions)); });
+    const lvl = v => v === 0 ? 0 : Math.min(4, Math.ceil(4 * v / max));
+    let h = '<div></div>' + Array.from({ length: 24 }, (_, i) => `<div class="hl">${i % 3 === 0 ? i : ''}</div>`).join('');
+    grid.forEach((row, d) => { h += `<div class="dl">${DOW[d]}</div>` + row.map((v, i) => `<div class="cell" data-l="${lvl(v)}" title="星期${DOW[d]} ${i}:00 · ${v} 次"></div>`).join(''); });
+    $('heat').innerHTML = h;
+
+    const tb = $('activityTable').querySelector('tbody');
+    if (!recent.length) return emptyRow(tb, 5, '還沒有動態');
+    tb.innerHTML = recent.map(r => {
+      const a = ACTIONS[r.action] ?? { label: r.action, c: 'var(--fg-3)' };
+      const tree = r.tree_code || r.tree_name ? `${esc(r.tree_name ?? '')} <span class="muted">${esc(r.tree_code ?? '')}${r.division ? ' · ' + esc(r.division) : ''}</span>` : '<span class="muted">—</span>';
+      return `<tr><td class="muted">${fmtTime(r.happened_at)}</td><td>${r.user_id ? userCell(r.user_label, r.user_id, false) : esc(r.user_label)}</td><td><span class="act" style="--c:${a.c}">${esc(a.label)}</span></td><td>${esc(detailText(r.action, r.detail))}</td><td>${tree}</td></tr>`;
+    }).join('');
+  }
+
+  // ================= 玩家 =================
+  function renderPlayersTab({ funnel: f, retention, players }) {
+    const steps = [
+      ['註冊', f.total], ['曾有任何行為', f.ever_active], ['收服過樹靈', f.has_spirit], ['認領過樹', f.has_claim],
+      ['賺過葉幣', f.has_ledger], ['同步過步數', f.has_steps], ['回報過樹況', f.has_report], ['近 7 天活躍', f.active_7d],
+    ];
+    $('funnel').innerHTML = steps.map(([l, v]) => `<div class="step"><span>${esc(l)}</span><div class="track"><div class="fill" style="width:${f.total ? (100 * v / f.total).toFixed(1) : 0}%"></div></div><span class="pct num">${fmt(v)} · ${pct(v, f.total)}</span></div>`).join('');
+    barList($('providerBars'), toItems(f.providers), { labelOf: k => PROVIDERS[k] ?? k, color: () => 'var(--s1)' });
+    const order = ['0', '1-5', '6-20', '21-100', '100+'];
+    barList($('bucketBars'), order.map(k => ({ key: k, value: Number(f.actions_buckets?.[k] ?? 0) })), { labelOf: k => k === '0' ? '沒有行為' : k + ' 次', color: () => 'var(--s3)' });
+    $('playerKv').innerHTML = [['有暱稱', f.has_profile], ['近 30 天活躍', f.active_30d], ['沉睡超過 30 天', f.dormant_30d], ['從未有行為', f.never_active], ['匿名帳號', f.anonymous]]
+      .map(([k, v]) => `<div><span>${esc(k)}</span><b class="num">${fmt(v)}</b></div>`).join('');
+
+    const rt = $('retentionTable').querySelector('tbody');
+    if (!retention.length) emptyRow(rt, 7, '還沒有足夠資料');
+    else rt.innerHTML = retention.map(r => {
+      const cell = (v, k) => { const future = new Date(r.cohort_week).getTime() + k * 7 * 864e5 > Date.now(); if (future) return `<td class="r faint">—</td>`; const p = r.cohort_size ? v / r.cohort_size : 0; const bg = p === 0 ? 'transparent' : alpha(resolve('var(--s3)'), .15 + .6 * p); return `<td class="r"><span class="num" style="background:${bg}">${pct(v, r.cohort_size)}</span></td>`; };
+      return `<tr><td>${fmtDateY(r.cohort_week)} 那週</td><td class="num">${fmt(r.cohort_size)}</td>${cell(r.w0, 0)}${cell(r.w1, 1)}${cell(r.w2, 2)}${cell(r.w3, 3)}${cell(r.w4, 4)}</tr>`;
+    }).join('');
+
+    playersRows = players;
+    renderPlayersTable();
+  }
+  function renderPlayersTable() {
+    const q = $('playerSearch').value.trim().toLowerCase();
+    const rows = q ? playersRows.filter(r => (r.label || '').toLowerCase().includes(q)) : playersRows;
+    const tb = $('playersTable').querySelector('tbody');
+    if (!rows.length) return emptyRow(tb, 12, q ? '找不到符合的玩家' : '還沒有玩家');
+    tb.innerHTML = rows.map(r => `<tr class="click" tabindex="0" data-user="${r.user_id}">
+      <td>${esc(r.label)} ${r.is_anonymous ? pill('匿名', 'anon') : ''}</td>
+      <td class="muted">${fmtDate(r.joined_at)}</td><td class="muted">${ago(r.last_active)}</td>
+      <td class="num">${fmt(r.spirits)}</td><td class="num">${r.max_level ? 'Lv.' + r.max_level : '—'}</td>
+      <td class="num">${fmt(r.claims)}</td><td class="num">${fmt(r.reports)}</td><td class="num">${fmt(r.watches)}</td>
+      <td class="num">${fmt(r.leaves_earned)}</td><td class="num">${fmt(r.leaves_balance)}</td>
+      <td class="num">${fmt(r.steps)}</td><td class="num"><strong>${fmt(r.actions)}</strong></td></tr>`).join('');
+  }
+
+  // ================= 樹靈 =================
+  function renderSpiritsTab({ stats: s, list }) {
+    const total = toItems(s.by_rarity).reduce((a, b) => a + b.value, 0);
+    $('spiritHint').textContent = `共 ${fmt(total)} 隻`;
+    const seq = ['#86b6ef', '#3987e5', '#1c5cab', '#0d366b'];
+    barList($('rarityBars'), toItems(s.by_rarity).sort((a, b) => RARITY_ORDER.indexOf(a.key) - RARITY_ORDER.indexOf(b.key)), { color: k => seq[Math.max(0, RARITY_ORDER.indexOf(k)) % seq.length], labelOf: k => RARITY[k] ?? k });
+    barList($('elementBars'), toItems(s.by_element), { color: k => ELEMENT_C[k] ?? 'var(--fg-3)', labelOf: k => ELEMENT[k] ?? k });
+    barList($('divisionBars'), toItems(s.by_division).slice(0, 12), { color: () => 'var(--s3)' });
+    const lv = Object.entries(s.by_level || {}).map(([k, v]) => [Number(k), Number(v)]);
+    const maxLv = lv.length ? Math.max(...lv.map(x => x[0])) : 1;
+    const labels = Array.from({ length: maxLv }, (_, i) => `Lv.${i + 1}`);
+    barChart('levelChart', labels, labels.map((_, i) => lv.find(x => x[0] === i + 1)?.[1] ?? 0), 'var(--s3)', '樹靈數');
+    spiritRows = list;
+    renderSpiritsTable();
+  }
+  function renderSpiritsTable() {
+    const q = $('spiritSearch').value.trim().toLowerCase();
+    const rows = q ? spiritRows.filter(r => [r.name, r.species, r.owner_label, r.division, r.tree_code].some(v => (v || '').toLowerCase().includes(q))) : spiritRows;
+    const tb = $('spiritsTable').querySelector('tbody');
+    if (!rows.length) return emptyRow(tb, 13, q ? '找不到符合的樹靈' : '還沒有樹靈');
+    tb.innerHTML = rows.map(r => `<tr>
+      <td>${r.image_url ? `<img class="thumb" src="${esc(r.image_url)}" alt="" loading="lazy">` : '<div class="thumb"></div>'}</td>
+      <td><b>${esc(r.name ?? '（未命名）')}</b></td>
+      <td>${userCell(r.owner_label, r.user_id, false)}</td>
+      <td>${esc(r.species ?? '—')} <span class="muted">${esc(r.tree_code ?? '')}</span></td>
+      <td>${esc(r.division ?? '—')}</td>
+      <td><span class="act" style="--c:${ELEMENT_C[r.element] ?? 'var(--fg-3)'}">${esc(ELEMENT[r.element] ?? r.element)}</span></td>
+      <td>${pill(RARITY[r.rarity] ?? r.rarity)}</td>
+      <td class="num">Lv.${r.level}</td><td class="num">${fmt(r.experience)}</td>
+      <td class="muted">${esc(r.mbti ?? '—')}</td>
+      <td>${r.is_resident ? pill('駐樹中', 'good') : pill('未駐樹')}</td>
+      <td class="muted">${fmtDate(r.collected_at)}</td><td class="muted">${ago(r.last_fed_at)}</td></tr>`).join('');
+  }
+
+  // ================= 樹木 =================
+  function renderTreesTab({ trees, claims }) {
+    const tt = $('treesTable').querySelector('tbody');
+    if (!trees.length) emptyRow(tt, 11, '還沒有玩家互動過的樹');
+    else tt.innerHTML = trees.map(t => { const st = TREE_STATUS[t.status] ?? [t.status, '']; return `<tr>
+      <td><b>${esc(t.code ?? '—')}</b> ${t.tree_type === 'protected' ? pill('受保護') : ''}</td><td>${esc(t.species ?? '—')}</td><td>${esc(t.division ?? '—')}</td>
+      <td class="wrap muted">${esc(t.address ?? '')}</td><td>${pill(st[0], st[1])}${t.active_claim ? ' ' + pill('有人認領', 'good') : ''}</td>
+      <td class="num">${fmt(t.spirits)}</td><td class="num">${fmt(t.claims)}</td><td class="num">${fmt(t.reports)}</td><td class="num">${fmt(t.watches)}</td><td class="num">${fmt(t.events)}</td>
+      <td>${mapLink(t.lat, t.lng)}</td></tr>`; }).join('');
+    const ct = $('claimsTable').querySelector('tbody');
+    if (!claims.length) emptyRow(ct, 12, '還沒有認領紀錄');
+    else ct.innerHTML = claims.map(c => `<tr>
+      <td>${userCell(c.user_label, c.user_id, false)}</td><td>${esc(c.spirit_name ?? '—')}</td>
+      <td>${esc(c.species ?? '—')} <span class="muted">${esc(c.tree_code ?? '')}</span></td><td>${esc(c.division ?? '—')}</td>
+      <td>${c.active ? pill('進行中', 'good') : pill('已到期')}${c.protected_until && new Date(c.protected_until) > Date.now() ? ' ' + pill('防護中', 'warn') : ''}</td>
+      <td class="muted">${fmtDate(c.claimed_at)}</td><td class="muted">${fmtDate(c.expires_at)}</td><td class="muted">${ago(c.last_checkin_at)}</td>
+      <td class="num">${fmt(c.checkin_streak)}</td><td class="num">${fmt(c.extended_count)}</td><td class="num">${c.quiz_score == null ? '—' : c.quiz_score + ' 題'}</td><td class="num">${fmt(c.challenges)}</td></tr>`).join('');
+  }
+
+  // ================= 經濟 =================
+  function renderEconomyTab({ econ: e, activity, quiz: q }) {
+    tiles($('econTiles'), [
+      { label: '累計發放', value: e.total_earned, sub: `近 ${days} 天 ${fmt(e.period_earned)}` },
+      { label: '累計花費', value: e.total_spent, sub: `近 ${days} 天 ${fmt(e.period_spent)}` },
+      { label: '流通中餘額', value: e.total_balance, sub: '所有玩家錢包加總' },
+      { label: `近 ${days} 天步數`, value: e.steps_period, sub: `平均每人每天 ${fmt(e.steps_avg_per_user_day)} 步` },
+      { label: '步數換到的葉幣', value: e.step_leaves_period, sub: `近 ${days} 天` },
+    ]);
+    $('earnHint').textContent = `近 ${days} 天，葉幣數與次數`;
+    $('spendHint').textContent = `近 ${days} 天，葉幣數與次數`;
+    barList($('earnBars'), toItems(e.earned_by_reason, v => Number(v.leaves)), { labelOf: k => REASONS[k] ?? k, color: () => 'var(--s4)', extraOf: i => `${fmt(i.raw.count)} 次` });
+    barList($('spendBars'), toItems(e.spent_by_item, v => Number(v.leaves)), { labelOf: k => ITEMS[k] ?? REASONS[k] ?? k, color: () => 'var(--s2)', extraOf: i => `${fmt(i.raw.count)} 次`, emptyText: '這段期間沒有消費' });
+    barList($('itemBars'), toItems(e.items_held, v => Number(v.qty)), { labelOf: k => ITEMS[k] ?? k, color: () => 'var(--s7)', extraOf: i => `${fmt(i.raw.users)} 人持有`, emptyText: '沒有人持有道具' });
+    const bo = ['0', '1-50', '51-200', '201-500', '500+'];
+    barList($('balanceBars'), bo.map(k => ({ key: k, value: Number(e.balance_buckets?.[k] ?? 0) })), { labelOf: k => k === '0' ? '0 葉' : k + ' 葉', color: () => 'var(--s1)' });
+
+    const al = activity.map(r => fmtDate(r.day));
+    barChart('leavesChart', al, activity.map(r => r.leaves_earned), 'var(--s4)', '葉幣發放');
+    barChart('stepsChart', al, activity.map(r => r.steps), 'var(--s7)', '步數');
+
+    $('quizKv').innerHTML = [['答對題數累計', q.quiz_correct_total], ['答過題的玩家', q.quiz_users], ['搶樹挑戰次數', q.challenges_total], ['挑戰成功', `${fmt(q.challenges_won)} · ${pct(q.challenges_won, q.challenges_total)}`], ['題庫題數', q.questions_total]]
+      .map(([k, v]) => `<div><span>${esc(k)}</span><b class="num">${typeof v === 'string' ? esc(v) : fmt(v)}</b></div>`).join('');
+    barList($('quizScoreBars'), toItems(q.claim_scores).sort((a, b) => Number(b.key) - Number(a.key)), { labelOf: k => `答對 ${k} 題`, color: () => 'var(--s4)', emptyText: '還沒有認領答題紀錄' });
+    barList($('quizScopeBars'), toItems(q.questions_by_scope), { labelOf: k => QUIZ_SCOPE[k] ?? k, color: () => 'var(--s3)', emptyText: '題庫是空的' });
+  }
+
+  // ================= 回報與請願 =================
+  function renderCivicTab({ reports, petitions }) {
+    $('reportHint').textContent = `共 ${fmt(reports.length)} 筆，已確認 ${fmt(reports.filter(r => r.confirmed_at).length)}，退回 ${fmt(reports.filter(r => r.dismissed).length)}`;
+    const byType = {}; reports.forEach(r => { byType[r.type] = (byType[r.type] || 0) + 1; });
+    barList($('reportTypeBars'), toItems(byType), { labelOf: k => REPORT_TYPES[k] ?? k, color: () => 'var(--s2)', emptyText: '還沒有回報' });
+    const rt = $('reportsTable').querySelector('tbody');
+    if (!reports.length) emptyRow(rt, 7, '還沒有回報');
+    else rt.innerHTML = reports.map(r => `<tr>
+      <td class="muted">${fmtTime(r.created_at)}</td><td>${userCell(r.user_label, r.user_id, false)}</td><td>${pill(REPORT_TYPES[r.type] ?? r.type)}</td>
+      <td>${esc(r.species ?? '—')} <span class="muted">${esc(r.tree_code ?? '')}${r.division ? ' · ' + esc(r.division) : ''}</span></td>
+      <td class="wrap">${esc(r.note ?? '')}</td>
+      <td><div class="photos">${(Array.isArray(r.photos) ? r.photos : []).slice(0, 3).map(p => `<a href="${esc(p)}" target="_blank" rel="noopener"><img src="${esc(p)}" alt="" loading="lazy"></a>`).join('')}</div></td>
+      <td>${r.dismissed ? pill('已退回', 'bad') : r.confirmed_at ? pill('已確認', 'good') : pill('待處理', 'warn')}</td></tr>`).join('');
+
+    $('petitionHint').textContent = `共 ${fmt(petitions.length)} 個空位，${fmt(petitions.filter(p => Number(p.seed_count) > 0).length)} 個有人投苗`;
+    const pt = $('petitionsTable').querySelector('tbody');
+    if (!petitions.length) emptyRow(pt, 9, '還沒有請願空位');
+    else pt.innerHTML = petitions.map(p => { const st = PETITION_STATUS[p.status] ?? [p.status, '']; return `<tr>
+      <td class="wrap">${esc(p.address ?? '—')}</td><td>${esc(PETITION_ORIGIN[p.origin] ?? p.origin)}</td><td>${pill(st[0], st[1])}</td>
+      <td><span class="progress"><i style="width:${Math.min(100, 100 * Number(p.seed_count) / (p.threshold || 1)).toFixed(0)}%"></i></span><span class="num">${fmt(p.seed_count)} / ${fmt(p.threshold)}</span></td>
+      <td class="num">${fmt(p.seeders)}</td>
+      <td class="muted">${Object.entries(p.species_tally || {}).map(([k, v]) => `${esc(k)} ${v}`).join('、') || '—'}</td>
+      <td class="muted">${ago(p.last_seed_at)}</td><td class="muted">${fmtDate(p.created_at)}</td><td>${mapLink(p.lat, p.lng)}</td></tr>`; }).join('');
+  }
+
+  // ================= 玩家明細 =================
+  async function openPlayer(userId) {
+    const dr = $('drawer'); $('drawerBg').hidden = false; dr.hidden = false;
+    dr.innerHTML = `<header><h2>玩家明細</h2><button class="btn close" type="button" id="drawerClose">關閉</button></header><div class="loading">讀取中…</div>`;
+    $('drawerClose').onclick = closePlayer;
+    try {
+      const d = await rpc('admin_player_detail', { p_user_id: userId });
+      renderPlayer(d);
+    } catch (e) { dr.querySelector('.loading').textContent = `讀取失敗：${e.message}`; }
+  }
+  function closePlayer() { $('drawer').hidden = true; $('drawerBg').hidden = true; }
+  function renderPlayer(d) {
+    const u = d.user || {};
+    const label = u.nickname || (u.email ? u.email.split('@')[0] : null) || (u.is_anonymous ? '匿名玩家' : '玩家');
+    const spirits = d.spirits || [], claims = d.claims || [], ledger = d.ledger || [], steps = d.steps || [], items = d.items || [], events = d.events || [];
+    const maxLv = spirits.length ? Math.max(...spirits.map(s => s.level)) : 0;
+    $('drawer').innerHTML = `
+      <header>
+        ${u.avatar_url ? `<img class="avatar" src="${esc(u.avatar_url)}" alt="">` : '<div class="avatar"></div>'}
+        <div><h2>${esc(label)} ${u.is_anonymous ? pill('匿名', 'anon') : ''}</h2><div class="small muted">${esc(u.email ?? '沒有 email')} · ${(u.providers || []).map(p => PROVIDERS[p] ?? p).join(' / ') || '—'}</div></div>
+        <button class="btn close" type="button" id="drawerClose">關閉</button>
+      </header>
+      <div class="kv">
+        <div><span>加入</span>${fmtDateY(u.created_at)}</div><div><span>最後登入</span>${ago(u.last_sign_in_at)}</div>
+        <div><span>葉幣餘額</span><b class="num">${fmt(d.balance)}</b></div><div><span>葉幣累計賺取</span><b class="num">${fmt(d.earned)}</b></div>
+        <div><span>累計步數</span><b class="num">${fmt(d.steps_total)}</b></div><div><span>樹靈</span><b class="num">${fmt(spirits.length)}</b>${maxLv ? ` <span class="muted">最高 Lv.${maxLv}</span>` : ''}</div>
+        <div><span>認領</span><b class="num">${fmt(claims.length)}</b> <span class="muted">進行中 ${fmt(claims.filter(c => c.active).length)}</span></div>
+        <div><span>道具</span>${items.length ? items.map(i => `${ITEMS[i.item_code] ?? i.item_code} ×${i.qty}`).join('、') : '—'}</div>
+      </div>
+      <section class="card"><header><h3>樹靈</h3></header>
+        ${spirits.length ? `<div class="spirit-cards">${spirits.map(s => `<div class="spirit-card">
+            ${s.image_url ? `<img src="${esc(s.image_url)}" alt="" loading="lazy">` : '<div style="aspect-ratio:1;background:var(--surface-2);border-radius:8px"></div>'}
+            <b>${esc(s.name ?? '（未命名）')}</b>
+            <div><span class="act" style="--c:${ELEMENT_C[s.element] ?? 'var(--fg-3)'}">${esc(ELEMENT[s.element] ?? s.element)}</span> · ${esc(RARITY[s.rarity] ?? s.rarity)} · Lv.${s.level}</div>
+            <div class="muted">${esc(s.species ?? '')} ${esc(s.tree_code ?? '')}${s.division ? ' · ' + esc(s.division) : ''}</div>
+            <div class="faint">收服 ${fmtDate(s.collected_at)} · 餵食 ${ago(s.last_fed_at)}</div></div>`).join('')}</div>` : '<div class="empty">還沒有樹靈</div>'}
+      </section>
+      <section class="card"><header><h3>認領</h3></header>
+        ${claims.length ? `<div class="tablewrap"><table><thead><tr><th>樹</th><th>樹靈</th><th>狀態</th><th>認領</th><th>到期</th><th class="num">連續簽到</th><th class="num">答題</th></tr></thead><tbody>
+          ${claims.map(c => `<tr><td>${esc(c.species ?? '—')} ${esc(c.tree_code ?? '')} <span class="muted">${esc(c.division ?? '')}</span></td><td>${esc(c.spirit_name ?? '—')}</td><td>${c.active ? pill('進行中', 'good') : pill('已到期')}</td><td class="muted">${fmtDate(c.claimed_at)}</td><td class="muted">${fmtDate(c.expires_at)}</td><td class="num">${fmt(c.checkin_streak)}</td><td class="num">${c.quiz_score == null ? '—' : c.quiz_score + ' 題'}</td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="empty">還沒有認領過樹</div>'}
+      </section>
+      <div class="grid2">
+        <section class="card"><header><h3>葉幣帳本</h3><span class="hint">最近 ${fmt(ledger.length)} 筆</span></header>
+          ${ledger.length ? `<div class="timeline">${ledger.slice(0, 40).map(l => `<div class="ev"><span class="muted">${fmtTime(l.at)}</span><span><b class="num" style="color:${l.delta >= 0 ? 'var(--good)' : 'var(--bad)'}">${l.delta >= 0 ? '+' : ''}${fmt(l.delta)}</b> ${esc(REASONS[l.reason] ?? l.reason)}${l.ref_id ? ` <span class="muted">${esc(ITEMS[l.ref_id] ?? l.ref_id)}</span>` : ''}${l.note ? ` <span class="faint">${esc(l.note)}</span>` : ''}</span></div>`).join('')}</div>` : '<div class="empty">還沒有葉幣紀錄</div>'}
+        </section>
+        <section class="card"><header><h3>步數</h3><span class="hint">最近 ${fmt(steps.length)} 天</span></header>
+          ${steps.length ? `<div class="timeline">${steps.slice(0, 30).map(s => `<div class="ev"><span class="muted">${fmtDate(s.date)}</span><span><b class="num">${fmt(s.steps)}</b> 步 <span class="muted">換 ${fmt(s.leaves)} 葉</span></span></div>`).join('')}</div>` : '<div class="empty">還沒有步數紀錄</div>'}
+        </section>
+      </div>
+      <section class="card"><header><h3>行為時間軸</h3><span class="hint">最近 ${fmt(events.length)} 筆</span></header>
+        ${events.length ? `<div class="timeline">${events.map(e => { const a = ACTIONS[e.action] ?? { label: e.action, c: 'var(--fg-3)' }; return `<div class="ev"><span class="muted">${fmtTime(e.at)}</span><span><span class="act" style="--c:${a.c}">${esc(a.label)}</span> ${esc(detailText(e.action, e.detail))} ${e.tree_name || e.tree_code ? `<span class="muted">${esc(e.tree_name ?? '')} ${esc(e.tree_code ?? '')}${e.division ? ' · ' + esc(e.division) : ''}</span>` : ''}</span></div>`; }).join('')}</div>` : '<div class="empty">還沒有行為</div>'}
+      </section>`;
+    $('drawerClose').onclick = closePlayer;
+  }
+
+  // ================= 載入與分頁 =================
+  function showError(msg) { const el = $('appMsg'); el.textContent = msg; el.hidden = !msg; }
+  const LOADERS = {
+    overview: async () => ({
+      overview:  await cached('overview', () => rpc('admin_overview')),
+      growth:    await cached(`growth:${days}`, () => rpc('admin_user_growth', { p_days: Math.max(days, 30) })),
+      activity:  await cached(`activity:${days}`, () => rpc('admin_daily_activity', { p_days: days })),
+      breakdown: await cached(`breakdown:${days}`, () => rpc('admin_action_breakdown', { p_days: days })),
+      hourly:    await cached(`hourly:${days}`, () => rpc('admin_hourly_activity', { p_days: days })),
+      recent:    await cached('recent', () => rpc('admin_recent_activity', { p_limit: 60 })),
+    }),
+    players: async () => ({
+      funnel:    await cached('funnel', () => rpc('admin_funnel')),
+      retention: await cached('retention', () => rpc('admin_retention', { p_weeks: 10 })),
+      players:   await cached('players', () => rpc('admin_top_players', { p_limit: 500 })),
+    }),
+    spirits: async () => ({
+      stats: await cached('spiritStats', () => rpc('admin_spirit_stats')),
+      list:  await cached('spiritList', () => rpc('admin_spirits_list', { p_limit: 200 })),
+    }),
+    trees: async () => ({
+      trees:  await cached('treesHot', () => rpc('admin_trees_hot', { p_limit: 50 })),
+      claims: await cached('claims', () => rpc('admin_claims_list', { p_limit: 100 })),
+    }),
+    economy: async () => ({
+      econ:     await cached(`econ:${days}`, () => rpc('admin_economy', { p_days: days })),
+      activity: await cached(`activity:${days}`, () => rpc('admin_daily_activity', { p_days: days })),
+      quiz:     await cached('quiz', () => rpc('admin_quiz_stats')),
+    }),
+    civic: async () => ({
+      reports:   await cached('reports', () => rpc('admin_reports_list', { p_limit: 100 })),
+      petitions: await cached('petitions', () => rpc('admin_petitions')),
+    }),
+  };
+  const RENDERERS = { overview: renderOverview, players: renderPlayersTab, spirits: renderSpiritsTab, trees: renderTreesTab, economy: renderEconomyTab, civic: renderCivicTab };
+
+  async function loadTab() {
+    showError('');
+    $('refreshBtn').disabled = true;
+    try {
+      chartDefaults();
+      // 同一分頁的 RPC 並行打
+      const spec = LOADERS[tab];
+      const data = await spec();
+      RENDERERS[tab](data);
+    } catch (e) {
+      console.error(e);
+      if (e.code === '42501') showError('這個帳號不在管理員名單裡。請把 email 加進 Supabase 的 admin_users 表後再登入。');
+      else if (e.code === 'PGRST202' || /Could not find the function/.test(e.message)) showError('後端缺少統計函式（可能是新版）。請重新在 Supabase SQL Editor 執行 data/migration_admin_dashboard.sql。');
+      else showError(`讀取失敗：${e.message}`);
+    } finally { $('refreshBtn').disabled = false; }
+  }
+  function switchTab(next) {
+    tab = next;
+    document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+    document.querySelectorAll('[role="tabpanel"]').forEach(p => { p.hidden = p.id !== 'tab-' + tab; });
+    try { history.replaceState(null, '', '#' + tab); } catch {}
+    loadTab();
+  }
+  function refreshAll() { Object.keys(cache).forEach(k => delete cache[k]); loadTab(); }
+
+  function showLogin(msg, isErr) {
+    $('app').hidden = true; $('loginView').hidden = false;
+    const m = $('loginMsg'); m.hidden = !msg; m.textContent = msg ?? ''; m.classList.toggle('err', !!isErr);
+  }
+  function showApp() {
+    $('loginView').hidden = true; $('app').hidden = false;
+    const h = location.hash.replace('#', '');
+    switchTab(LOADERS[h] ? h : 'overview');
+  }
+
+  // ---------- 事件 ----------
+  $('loginForm').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    $('loginBtn').disabled = true; showLogin('登入中…');
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    $('loginBtn').disabled = false;
+    if (error) { showLogin(error.message === 'Invalid login credentials' ? 'Email 或密碼不正確。' : error.message, true); return; }
+    showApp();
+  });
+  $('googleBtn').addEventListener('click', async () => {
+    showLogin('正在前往 Google…');
+    const redirectTo = location.origin + location.pathname;
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+    if (error) showLogin(error.message, true);
+  });
+  $('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); Object.keys(cache).forEach(k => delete cache[k]); showLogin(); });
+  $('refreshBtn').addEventListener('click', refreshAll);
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    days = Number(b.dataset.days); loadTab();
+  }));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  $('playerSearch').addEventListener('input', renderPlayersTable);
+  $('spiritSearch').addEventListener('input', renderSpiritsTable);
+  document.addEventListener('click', ev => {
+    const link = ev.target.closest('a.user-link'); if (link) { ev.preventDefault(); openPlayer(link.dataset.user); return; }
+    const row = ev.target.closest('tr.click[data-user]'); if (row) openPlayer(row.dataset.user);
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && !$('drawer').hidden) closePlayer();
+    if (ev.key === 'Enter' && ev.target.matches('tr.click[data-user]')) openPlayer(ev.target.dataset.user);
+  });
+  $('drawerBg').addEventListener('click', closePlayer);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!$('app').hidden) loadTab(); });
+
+  let started = false;
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session && $('app').hidden) {
+      started = true;
+      if (location.search) history.replaceState(null, '', location.pathname + location.hash);
+      showApp();
+    }
+  });
+  sb.auth.getSession().then(({ data }) => {
+    if (started) return;
+    if (data.session) { started = true; showApp(); }
+    else if (!/[?&]code=/.test(location.search)) showLogin();
+    else showLogin('正在完成 Google 登入…');
+  });
+})();
+</script>
+</body>
+</html>
