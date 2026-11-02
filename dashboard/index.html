@@ -465,6 +465,7 @@ tr.click.on td { background: color-mix(in srgb, var(--accent) 12%, transparent);
 
   <footer>
     <span id="generatedAt"></span>
+    <span id="excludedNote" hidden></span>
     <span>資料來源：Supabase · 日界以台北時間計</span>
   </footer>
 </div>
@@ -616,6 +617,9 @@ tr.click.on td { background: color-mix(in srgb, var(--accent) 12%, transparent);
       { label: '近 7 天行為', value: o.actions_7d, sub: `留言 ${fmt(o.comments)} · 樹事件 ${fmt(o.tree_events)}` },
     ]);
     $('generatedAt').textContent = `更新於 ${fmtTime(o.generated_at)}`;
+    const ex = o.excluded_accounts || [];
+    $('excludedNote').hidden = !ex.length;
+    $('excludedNote').textContent = ex.length ? `已排除 ${ex.length} 個測試帳號：${ex.join('、')}` : '';
 
     const gl = growth.map(r => fmtDate(r.day));
     lineChart('growthChart', gl, growth.map(r => r.cumulative), 'var(--s1)', '累積玩家');
