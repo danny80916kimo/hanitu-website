@@ -6,6 +6,7 @@
 <title>樹靈記 營運儀表板</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 /* 版面：頂欄 + 分頁。每頁是「數字磚 → 圖 → 表」的順序，玩家明細用右側滑出面板。 */
 :root {
@@ -49,7 +50,7 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }  /* minmax(0,…)：分頁列再長也不能撐寬版面，改成橫向捲動 */
 .panel { display: grid; gap: 18px; min-width: 0; }
 h1, h2, h3 { margin: 0; text-wrap: balance; }
 h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: .02em; }
@@ -167,6 +168,37 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
 .timeline { display: grid; gap: 0; font-size: 13px; }
 .timeline .ev { display: grid; grid-template-columns: 7.5em 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .timeline .ev:last-child { border-bottom: 0; }
+/* 地圖分頁：Leaflet 容器與控制列用同一套 token */
+.map-toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; }
+.map-toolbar .layers { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
+.map-toolbar label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; color: var(--fg-2); white-space: nowrap; }
+.map-toolbar label input { accent-color: var(--accent); margin: 0; }
+.map-toolbar select { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); max-width: 100%; }
+.leaflet-map { height: 560px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); isolation: isolate; }
+@media (max-width: 720px) { .leaflet-map { height: 62vh; min-height: 340px; } }
+.leaflet-container { font-family: var(--font-body); font-size: 12px; }
+.leaflet-map.dark-tiles .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.55); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--fg); box-shadow: 0 6px 20px rgba(0,0,0,.28); }
+.leaflet-popup-content-wrapper { border-radius: 10px; border: 1px solid var(--line); }
+.leaflet-popup-content { margin: 10px 12px; line-height: 1.45; min-width: 180px; }
+.leaflet-popup-content b { font-size: 13px; }
+.leaflet-popup-content .photos img { width: 44px; height: 44px; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--fg-3); }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 85%, transparent) !important; color: var(--fg-3) !important; font-size: 10px; }
+.leaflet-control-attribution a { color: var(--fg-2); }
+.leaflet-bar { border: 1px solid var(--line) !important; box-shadow: none !important; }
+.leaflet-bar a { background: var(--surface); color: var(--fg); border-bottom-color: var(--line); }
+.leaflet-bar a:hover { background: var(--surface-2); }
+.pin { width: 12px; height: 12px; background: var(--c); border: 2px solid var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.3); box-sizing: border-box; }
+.pin.sq { border-radius: 2px; transform: rotate(45deg); }
+.pin.leaf { border-radius: 50% 0 50% 50%; transform: rotate(-45deg); width: 13px; height: 13px; }
+.pin.hl { box-shadow: 0 0 0 3px var(--accent), 0 0 0 1px rgba(0,0,0,.3); }
+.map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--fg-2); }
+.map-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.map-legend i.sq { border-radius: 2px; transform: rotate(45deg); }
+.map-legend i.leaf { border-radius: 50% 0 50% 50%; transform: rotate(-45deg); }
+.map-legend i.heat { width: 36px; border-radius: 3px; background: linear-gradient(90deg, var(--heat-1), var(--heat-2), var(--heat-3), var(--heat-4)); transform: none; }
+tr.click.on td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -207,6 +239,7 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
     </div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="overview" aria-selected="true">總覽</button>
+      <button role="tab" data-tab="map">地圖</button>
       <button role="tab" data-tab="players">玩家</button>
       <button role="tab" data-tab="spirits">樹靈</button>
       <button role="tab" data-tab="trees">樹木與認領</button>
@@ -216,6 +249,55 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
   </header>
 
   <div id="appMsg" class="notice err" hidden></div>
+
+  <!-- 地圖 -->
+  <div id="tab-map" class="panel" role="tabpanel" hidden>
+    <section class="card">
+      <header><h2>活動地圖</h2><span class="hint" id="mapHint"></span></header>
+      <div class="map-toolbar">
+        <div class="layers" role="group" aria-label="圖層">
+          <label><input type="checkbox" data-layer="heat" checked> 熱度</label>
+          <label><input type="checkbox" data-layer="trees" checked> 有活動的樹</label>
+          <label><input type="checkbox" data-layer="reports" checked> 回報</label>
+          <label><input type="checkbox" data-layer="statuses" checked> 樹況</label>
+          <label><input type="checkbox" data-layer="petitions"> 請願空位</label>
+        </div>
+        <select id="mapMetric" aria-label="熱度依據">
+          <option value="actions">熱度：全部行為</option>
+          <option value="users">熱度：不同玩家數</option>
+          <option value="spirits">熱度：收服樹靈</option>
+          <option value="claims">熱度：認領</option>
+          <option value="reports">熱度：回報</option>
+          <option value="watches">熱度：集氣</option>
+        </select>
+        <select id="mapDivision" aria-label="行政區"><option value="">全部行政區</option></select>
+        <select id="mapTreeType" aria-label="樹木種類">
+          <option value="">老樹 + 街道樹</option><option value="protected">只看老樹</option><option value="street">只看街道樹</option>
+        </select>
+        <select id="mapReportType" aria-label="回報類型"><option value="">全部回報類型</option></select>
+        <select id="mapReportStatus" aria-label="回報狀態">
+          <option value="">全部回報狀態</option><option value="pending">待處理</option><option value="confirmed">已確認</option><option value="dismissed">已退回</option>
+        </select>
+        <button class="btn" id="mapFit" type="button">回到資料範圍</button>
+      </div>
+      <div id="activityMap" class="leaflet-map" role="region" aria-label="地圖"></div>
+      <div class="map-legend" id="mapLegend"></div>
+    </section>
+    <div class="grid2">
+      <section class="card">
+        <header><h2>熱度前 20 棵樹</h2><span class="hint" id="mapTreesHint"></span></header>
+        <div class="tablewrap"><table id="mapTreesTable">
+          <thead><tr><th>樹牌</th><th>樹種</th><th>行政區</th><th class="num">行為</th><th class="num">玩家</th><th class="num">樹靈</th><th class="num">認領</th><th class="num">回報</th><th>最近</th></tr></thead><tbody></tbody>
+        </table></div>
+      </section>
+      <section class="card">
+        <header><h2>回報</h2><span class="hint" id="mapReportsHint"></span></header>
+        <div class="tablewrap"><table id="mapReportsTable">
+          <thead><tr><th>時間</th><th>類型</th><th>樹</th><th>玩家</th><th>備註</th><th>狀態</th></tr></thead><tbody></tbody>
+        </table></div>
+      </section>
+    </div>
+  </div>
 
   <!-- 總覽 -->
   <div id="tab-overview" class="panel" role="tabpanel">
@@ -392,6 +474,8 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script>
 (function () {
   'use strict';
@@ -709,6 +793,151 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
       <td class="muted">${ago(p.last_seed_at)}</td><td class="muted">${fmtDate(p.created_at)}</td><td>${mapLink(p.lat, p.lng)}</td></tr>`; }).join('');
   }
 
+  // ================= 地圖 =================
+  const MAP_METRIC_LABEL = { actions: '行為', users: '玩家', spirits: '樹靈', claims: '認領', reports: '回報', watches: '集氣' };
+  const REPORT_STATE = r => r.dismissed ? 'dismissed' : r.confirmed_at ? 'confirmed' : 'pending';
+  const REPORT_STATE_PILL = { pending: ['待處理', 'warn'], confirmed: ['已確認', 'good'], dismissed: ['已退回', ''] };
+  const STATUS_C = { watching: 'var(--warn)', scheduled_removal: 'var(--bad)', removed: 'var(--bad)', replanted: 'var(--good)', healthy: 'var(--fg-3)' };
+  const mapState = { map: null, tiles: null, tilesDark: null, heat: null, groups: {}, markers: {}, data: null, fitted: false, filled: false };
+  const isDark = () => document.documentElement.dataset.theme === 'dark' || (document.documentElement.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const mapFilters = () => ({
+    metric: $('mapMetric').value, division: $('mapDivision').value, treeType: $('mapTreeType').value,
+    reportType: $('mapReportType').value, reportStatus: $('mapReportStatus').value,
+    layers: Object.fromEntries([...document.querySelectorAll('.map-toolbar input[data-layer]')].map(i => [i.dataset.layer, i.checked])),
+  });
+  const pinIcon = (cls, color, hl) => L.divIcon({ className: '', html: `<div class="pin ${cls}${hl ? ' hl' : ''}" style="--c:${color}"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] });
+  const treeTitle = t => `<b>${esc(t.species ?? '—')}</b> <span class="muted">${esc(t.code ?? '')}</span><br><span class="muted">${t.tree_type === 'street' ? '街道樹' : '老樹'}${t.division ? ' · ' + esc(t.division) : ''}${t.address ? '<br>' + esc(t.address) : ''}</span>`;
+
+  function ensureMap() {
+    if (mapState.map) { setTiles(); return; }
+    const map = L.map('activityMap', { zoomControl: true, attributionControl: true, preferCanvas: true }).setView([25.04, 121.55], 12);
+    mapState.map = map;
+    mapState.tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+    setTiles();
+    // 圖層順序：熱度在底，樹況與請願在上
+    for (const k of ['trees', 'reports', 'statuses', 'petitions']) mapState.groups[k] = L.layerGroup().addTo(map);
+  }
+  // 暗色主題：底圖用 CSS 反相，不用另一套圖磚
+  function setTiles() { $('activityMap').classList.toggle('dark-tiles', isDark()); }
+  function fillSelect(sel, values, labelOf = v => v) {
+    const cur = sel.value;
+    sel.innerHTML = sel.options[0].outerHTML + values.map(v => `<option value="${esc(v)}">${esc(labelOf(v))}</option>`).join('');
+    if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+  }
+  function renderMapTab({ map: data }) {
+    mapState.data = data;
+    ensureMap();
+    if (!mapState.filled) {
+      mapState.filled = true;
+      const divisions = [...new Set([...data.trees, ...data.reports, ...data.statuses].map(x => x.division).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+      fillSelect($('mapDivision'), divisions);
+      fillSelect($('mapReportType'), Object.keys(REPORT_TYPES), k => REPORT_TYPES[k]);
+    }
+    applyMapFilters();
+    setTimeout(() => { mapState.map.invalidateSize(); if (!mapState.fitted) fitMap(); }, 0);
+  }
+  function fitMap() {
+    const pts = [];
+    Object.values(mapState.groups).forEach(g => g.eachLayer(l => { if (l.getLatLng) pts.push(l.getLatLng()); }));
+    if (!pts.length) return;
+    mapState.map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 15 });
+    mapState.fitted = true;
+  }
+  function applyMapFilters() {
+    const d = mapState.data; if (!d) return;
+    const f = mapFilters();
+    const since = new Date(d.since);
+    const inScope = x => (!f.division || x.division === f.division) && (!f.treeType || x.tree_type === f.treeType);
+    const trees = d.trees.filter(inScope).filter(t => Number(t[f.metric]) > 0);
+    // 回報：區間內的，加上還沒處理的（不管多久以前）
+    const reports = d.reports.filter(inScope)
+      .filter(r => new Date(r.created_at) >= since || REPORT_STATE(r) === 'pending')
+      .filter(r => (!f.reportType || r.type === f.reportType) && (!f.reportStatus || REPORT_STATE(r) === f.reportStatus));
+    const statuses = d.statuses.filter(inScope);
+    const petitions = d.petitions;
+    const max = Math.max(1, ...trees.map(t => Number(t[f.metric])));
+
+    Object.values(mapState.groups).forEach(g => g.clearLayers());
+    if (mapState.heat) { mapState.map.removeLayer(mapState.heat); mapState.heat = null; }
+    mapState.markers = {};
+
+    if (f.layers.heat && trees.length) {
+      mapState.heat = L.heatLayer(trees.map(t => [t.lat, t.lng, Number(t[f.metric]) / max]), {
+        radius: 30, blur: 22, max: 1, minOpacity: .35,
+        gradient: { .2: css('--heat-1'), .5: css('--heat-2'), .8: css('--heat-3'), 1: css('--heat-4') },
+      }).addTo(mapState.map);
+    }
+    if (f.layers.trees) trees.forEach(t => {
+      const v = Number(t[f.metric]);
+      const m = L.circleMarker([t.lat, t.lng], { radius: 4 + 10 * Math.sqrt(v / max), color: css('--surface'), weight: 1.5, fillColor: resolve(t.tree_type === 'street' ? 'var(--s1)' : 'var(--s3)'), fillOpacity: .85 });
+      m.bindPopup(`${treeTitle(t)}<br>
+        <span class="num">${fmt(t.actions)}</span> 次行為 · <span class="num">${fmt(t.users)}</span> 位玩家<br>
+        樹靈 ${fmt(t.spirits)} · 認領 ${fmt(t.claims)}${t.active_claim ? '（認領中）' : ''} · 回報 ${fmt(t.reports)} · 集氣 ${fmt(t.watches)} · 留言 ${fmt(t.comments)}<br>
+        ${t.status !== 'healthy' ? pill((TREE_STATUS[t.status] ?? [t.status])[0], (TREE_STATUS[t.status] ?? ['', ''])[1]) + ' ' : ''}<span class="muted">最近 ${ago(t.last_at)}</span> · ${mapLink(t.lat, t.lng)}`);
+      mapState.groups.trees.addLayer(m); mapState.markers['t:' + t.id] = m;
+    });
+    if (f.layers.reports) reports.forEach(r => {
+      const st = REPORT_STATE(r);
+      const m = L.marker([r.lat, r.lng], { icon: pinIcon('', resolve(st === 'pending' ? 'var(--warn)' : st === 'confirmed' ? 'var(--good)' : 'var(--fg-3)')) });
+      m.bindPopup(`<b>${esc(REPORT_TYPES[r.type] ?? r.type)}</b> ${pill(...REPORT_STATE_PILL[st])}<br>
+        <span class="muted">${esc(r.species ?? '')} ${esc(r.tree_code ?? '')}${r.division ? ' · ' + esc(r.division) : ''}</span><br>
+        ${r.note ? esc(r.note) + '<br>' : ''}
+        ${(Array.isArray(r.photos) ? r.photos : []).length ? `<div class="photos">${r.photos.slice(0, 3).map(p => `<a href="${esc(p)}" target="_blank" rel="noopener"><img src="${esc(p)}" alt="" loading="lazy"></a>`).join('')}</div>` : ''}
+        <span class="muted">${fmtTime(r.created_at)}</span> · ${userCell(r.user_label, r.user_id, false)} · ${mapLink(r.lat, r.lng)}`);
+      mapState.groups.reports.addLayer(m); mapState.markers['r:' + r.id] = m;
+    });
+    if (f.layers.statuses) statuses.forEach(x => {
+      const m = L.marker([x.lat, x.lng], { icon: pinIcon('sq', resolve(STATUS_C[x.status] ?? 'var(--fg-3)')) });
+      const st = TREE_STATUS[x.status] ?? [x.status, ''];
+      m.bindPopup(`${treeTitle(x)}<br>${pill(st[0], st[1])}${x.reason ? ' ' + esc(x.reason) : ''}${x.unit ? ' · ' + esc(x.unit) : ''}<br>
+        <span class="muted">更新 ${fmtDate(x.updated_at)}${x.pending_since ? ' · 待回應自 ' + fmtDate(x.pending_since) : ''}</span> · ${mapLink(x.lat, x.lng)}`);
+      mapState.groups.statuses.addLayer(m);
+    });
+    if (f.layers.petitions) petitions.forEach(p => {
+      const st = PETITION_STATUS[p.status] ?? [p.status, ''];
+      const m = L.marker([p.lat, p.lng], { icon: pinIcon('leaf', resolve('var(--s6)')) });
+      m.bindPopup(`<b>${esc(p.address ?? '請願空位')}</b> ${pill(st[0], st[1])}<br>
+        <span class="muted">${esc(PETITION_ORIGIN[p.origin] ?? p.origin)}</span> · 投苗 <span class="num">${fmt(p.seed_count)} / ${fmt(p.threshold)}</span><br>
+        <span class="muted">建立 ${fmtDate(p.created_at)} · 最近投苗 ${ago(p.last_seed_at)}</span> · ${mapLink(p.lat, p.lng)}`);
+      mapState.groups.petitions.addLayer(m);
+    });
+
+    const metricLabel = MAP_METRIC_LABEL[f.metric];
+    $('mapHint').textContent = `近 ${days} 天 · ${fmt(trees.length)} 棵樹有${metricLabel}紀錄 · ${fmt(reports.length)} 筆回報 · ${fmt(statuses.length)} 棵有樹況`;
+    $('mapLegend').innerHTML = `
+      <span><i class="heat"></i>熱度（${esc(metricLabel)}，顏色越亮越多）</span>
+      <span><i style="--c:var(--s3)"></i>老樹（圓越大${esc(metricLabel)}越多）</span><span><i style="--c:var(--s1)"></i>街道樹</span>
+      <span><i style="--c:var(--warn)"></i>回報待處理</span><span><i style="--c:var(--good)"></i>回報已確認</span><span><i style="--c:var(--fg-3)"></i>回報已退回</span>
+      <span><i class="sq" style="--c:var(--warn)"></i>觀察中</span><span><i class="sq" style="--c:var(--bad)"></i>預定移除 / 已移除</span><span><i class="sq" style="--c:var(--good)"></i>已補植</span>
+      <span><i class="leaf" style="--c:var(--s6)"></i>請願空位</span>`;
+
+    // 表格
+    const top = [...trees].sort((a, b) => Number(b[f.metric]) - Number(a[f.metric])).slice(0, 20);
+    $('mapTreesHint').textContent = `依${metricLabel}排序`;
+    const tt = $('mapTreesTable').querySelector('tbody');
+    if (!top.length) emptyRow(tt, 9, '這個範圍還沒有活動');
+    else tt.innerHTML = top.map(t => `<tr class="click" tabindex="0" data-marker="t:${esc(t.id)}">
+      <td class="num">${esc(t.code ?? '—')}</td><td>${esc(t.species ?? '—')} <span class="faint">${t.tree_type === 'street' ? '街' : '老'}</span></td><td class="muted">${esc(t.division ?? '—')}</td>
+      <td class="num">${fmt(t.actions)}</td><td class="num">${fmt(t.users)}</td><td class="num">${fmt(t.spirits)}</td><td class="num">${fmt(t.claims)}</td><td class="num">${fmt(t.reports)}</td><td class="muted">${ago(t.last_at)}</td></tr>`).join('');
+    $('mapReportsHint').textContent = `區間內的回報加上所有待處理 · 點一列在地圖上看`;
+    const rt = $('mapReportsTable').querySelector('tbody');
+    if (!reports.length) emptyRow(rt, 6, '沒有符合的回報');
+    else rt.innerHTML = reports.slice(0, 100).map(r => { const st = REPORT_STATE(r); return `<tr class="click" tabindex="0" data-marker="r:${esc(r.id)}">
+      <td class="muted">${fmtTime(r.created_at)}</td><td>${pill(REPORT_TYPES[r.type] ?? r.type)}</td>
+      <td>${esc(r.species ?? '—')} <span class="muted">${esc(r.tree_code ?? '')}${r.division ? ' · ' + esc(r.division) : ''}</span></td>
+      <td>${userCell(r.user_label, r.user_id, false)}</td><td class="wrap">${esc(r.note ?? '')}</td><td>${pill(...REPORT_STATE_PILL[st])}</td></tr>`; }).join('');
+  }
+  function focusMarker(key) {
+    const m = mapState.markers[key]; if (!m) return;
+    document.querySelectorAll('tr.click.on').forEach(r => r.classList.remove('on'));
+    document.querySelector(`tr[data-marker="${CSS.escape(key)}"]`)?.classList.add('on');
+    mapState.map.flyTo(m.getLatLng(), Math.max(mapState.map.getZoom(), 16), { duration: .6 });
+    setTimeout(() => m.openPopup(), 650);
+    $('activityMap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  document.querySelectorAll('.map-toolbar input, .map-toolbar select').forEach(el => el.addEventListener('change', applyMapFilters));
+  $('mapFit').addEventListener('click', () => { mapState.fitted = false; fitMap(); });
+
   // ================= 玩家明細 =================
   async function openPlayer(userId) {
     const dr = $('drawer'); $('drawerBg').hidden = false; dr.hidden = false;
@@ -768,6 +997,7 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
   // ================= 載入與分頁 =================
   function showError(msg) { const el = $('appMsg'); el.textContent = msg; el.hidden = !msg; }
   const LOADERS = {
+    map: async () => ({ map: await cached(`map:${days}`, () => rpc('admin_map_data', { p_days: days })) }),
     overview: async () => ({
       overview:  await cached('overview', () => rpc('admin_overview')),
       growth:    await cached(`growth:${days}`, () => rpc('admin_user_growth', { p_days: Math.max(days, 30) })),
@@ -799,7 +1029,7 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
       petitions: await cached('petitions', () => rpc('admin_petitions')),
     }),
   };
-  const RENDERERS = { overview: renderOverview, players: renderPlayersTab, spirits: renderSpiritsTab, trees: renderTreesTab, economy: renderEconomyTab, civic: renderCivicTab };
+  const RENDERERS = { map: renderMapTab, overview: renderOverview, players: renderPlayersTab, spirits: renderSpiritsTab, trees: renderTreesTab, economy: renderEconomyTab, civic: renderCivicTab };
 
   async function loadTab() {
     showError('');
@@ -862,11 +1092,13 @@ footer { color: var(--fg-3); font-size: 12px; display: flex; flex-wrap: wrap; ga
   $('spiritSearch').addEventListener('input', renderSpiritsTable);
   document.addEventListener('click', ev => {
     const link = ev.target.closest('a.user-link'); if (link) { ev.preventDefault(); openPlayer(link.dataset.user); return; }
-    const row = ev.target.closest('tr.click[data-user]'); if (row) openPlayer(row.dataset.user);
+    const row = ev.target.closest('tr.click[data-user]'); if (row) { openPlayer(row.dataset.user); return; }
+    const mrow = ev.target.closest('tr.click[data-marker]'); if (mrow) focusMarker(mrow.dataset.marker);
   });
   document.addEventListener('keydown', ev => {
     if (ev.key === 'Escape' && !$('drawer').hidden) closePlayer();
     if (ev.key === 'Enter' && ev.target.matches('tr.click[data-user]')) openPlayer(ev.target.dataset.user);
+    if (ev.key === 'Enter' && ev.target.matches('tr.click[data-marker]')) focusMarker(ev.target.dataset.marker);
   });
   $('drawerBg').addEventListener('click', closePlayer);
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!$('app').hidden) loadTab(); });
